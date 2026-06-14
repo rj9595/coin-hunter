@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Coin Hunter</title>
+
+<style>
+
+/* =======================
+   🎨 تنظیمات کلی صفحه
+======================= */
+body{
+    font-family:tahoma; /* فونت سایت */
+    text-align:center; /* وسط‌چین کردن متن */
+    background:linear-gradient(135deg,#111,#333); /* بک‌گراند گرادینت */
+    color:white; /* رنگ متن */
+    margin:0;
+    min-height:100vh;
+}
+
+/* =======================
+   🏷 عنوان بازی
+======================= */
+h1{
+    margin:15px 0;
+}
+
+/* =======================
+   📊 نوار اطلاعات (امتیاز، زمان، رکورد)
+======================= */
+#info{
+    display:flex;
+    justify-content:center;
+    gap:15px;
+    margin:10px;
+    font-size:16px;
+    flex-wrap:wrap;
+}
+
+/* =======================
+   🔘 دکمه‌ها
+======================= */
+button{
+    padding:10px 20px;
+    font-size:16px;
+    cursor:pointer;
+    border:none;
+    border-radius:10px;
+    background:#00c853;
+    color:white;
+    margin:5px;
+}
+
+/* =======================
+   🎮 محیط بازی
+======================= */
+#game{
+    width:90vw; /* ریسپانسیو */
+    max-width:500px;
+    aspect-ratio:1/1; /* مربع بودن */
+    margin:10px auto;
+    border:3px solid white;
+    position:relative;
+    background:#222;
+    overflow:hidden;
+    border-radius:15px;
+}
+
+/* =======================
+   🪙 سکه داخل بازی
+======================= */
+.coin{
+    width:10vw;
+    max-width:40px;
+    height:10vw;
+    max-height:40px;
+    border-radius:50%;
+    position:absolute;
+    cursor:pointer;
+}
+
+/* =======================
+   🪟 مودال ورود اسم
+======================= */
+#nameModal{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:rgba(0,0,0,0.7);
+    overflow:hidden;
+    z-index:999;
+}
+
+/* =======================
+   📦 باکس داخل مودال
+======================= */
+.modalBox{
+    position:relative;
+    z-index:2;
+    background:#111;
+    padding:20px;
+    border-radius:15px;
+    width:260px;
+}
+
+/* =======================
+   ✍️ input اسم
+======================= */
+.modalBox input{
+    width:90%;
+    padding:10px;
+    margin:10px 0;
+    border-radius:10px;
+    border:none;
+    text-align:center;
+}
+
+/* =======================
+   🌈 بک‌گراند توپ‌های مودال
+======================= */
+.balls{
+    position:absolute;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    z-index:1;
+}
+
+/* =======================
+   🔵 توپ‌های متحرک
+======================= */
+.ball{
+    position:absolute;
+    width:15px;
+    height:15px;
+    border-radius:50%;
+    opacity:0.4;
+    animation:float 6s linear infinite;
+}
+
+/* حرکت توپ‌ها از پایین به بالا */
+@keyframes float{
+    0%{ transform:translateY(100vh); }
+    100%{ transform:translateY(-100px); }
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- =======================
+     🎮 عنوان بازی
+======================= -->
+<h1>🎯 Coin Hunter</h1>
+
+<!-- =======================
+     📊 اطلاعات بازی
+======================= -->
+<div id="info">
+<div>⭐ امتیاز: <span id="score">0</span></div>
+<div>⏱ زمان: <span id="time">25</span></div>
+<div>🏆 رکورد: <span id="highscore">0</span></div>
+</div>
+
+<!-- =======================
+     ▶️ دکمه شروع بازی
+======================= -->
+<button onclick="startGame()">شروع بازی</button>
+
+<!-- =======================
+     🎮 محیط بازی
+======================= -->
+<div id="game"></div>
+
+<!-- =======================
+     🪟 مودال ورود اسم
+======================= -->
+<div id="nameModal">
+
+    <!-- بک‌گراند انیمیشنی -->
+    <div class="balls"></div>
+
+    <!-- باکس اصلی -->
+    <div class="modalBox">
+
+        <h3>🎮 خوش اومدی</h3>
+
+        <!-- input اسم -->
+        <input id="nameInput" placeholder="اسم خودتو وارد کن">
+
+        <!-- دکمه ذخیره اسم -->
+        <button onclick="saveName()">ورود</button>
+
+    </div>
+</div>
+
+<script>
+
+/* =======================
+   📦 متغیرهای اصلی بازی
+======================= */
+let score = 0;          // امتیاز بازیکن
+let timeLeft = 25;      // زمان بازی
+let gameRunning = false;// وضعیت بازی
+let playerName = "";    // اسم بازیکن
+
+// گرفتن المنت‌های صفحه
+const game = document.getElementById("game");
+const scoreEl = document.getElementById("score");
+const timeEl = document.getElementById("time");
+
+/* تایمرها */
+let timerInterval;
+let moveInterval;
+
+/* =======================
+   🏆 گرفتن رکورد از حافظه مرورگر
+======================= */
+let highscore = localStorage.getItem("highscore") || 0;
+document.getElementById("highscore").textContent = highscore;
+
+/* =======================
+   👤 ذخیره اسم بازیکن
+======================= */
+function saveName(){
+
+    playerName = document.getElementById("nameInput").value;
+
+    if(!playerName){
+        alert("اسم وارد کن!");
+        return;
+    }
+
+    // ذخیره در مرورگر (برای دفعه بعد)
+    localStorage.setItem("playerName", playerName);
+
+    // بستن مودال
+    document.getElementById("nameModal").style.display = "none";
+}
+
+/* =======================
+   🌈 ساخت توپ‌های پس‌زمینه مودال
+======================= */
+function createBalls(){
+
+    const container = document.querySelector(".balls");
+
+    for(let i=0;i<15;i++){
+
+        const ball = document.createElement("div");
+        ball.classList.add("ball");
+
+        // رنگ تصادفی
+        const colors = ["#ff5252","#40c4ff","#69f0ae","#ffd740","#b388ff"];
+        ball.style.background = colors[Math.floor(Math.random()*colors.length)];
+
+        // موقعیت تصادفی
+        ball.style.left = Math.random()*100 + "%";
+
+        // سایز تصادفی
+        const size = Math.random()*15 + 10;
+        ball.style.width = size + "px";
+        ball.style.height = size + "px";
+
+        // سرعت متفاوت حرکت
+        ball.style.animationDuration = (Math.random()*5+4) + "s";
+
+        container.appendChild(ball);
+    }
+}
+
+/* اجرای بک‌گراند مودال */
+createBalls();
+
+/* =======================
+   🪙 ساخت سکه داخل بازی
+======================= */
+function createCoin(){
+
+    // پاک کردن سکه قبلی
+    game.innerHTML = "";
+
+    const coin = document.createElement("div");
+    coin.classList.add("coin");
+
+    coin.style.background = "gold";
+
+    // قرار دادن تصادفی سکه
+    moveCoin(coin);
+
+    // وقتی روی سکه کلیک شد
+    coin.onclick = function(){
+
+        score++; // افزایش امتیاز
+        scoreEl.textContent = score; // نمایش امتیاز
+
+        createCoin(); // ساخت سکه جدید
+    };
+
+    game.appendChild(coin);
+
+    // حرکت مداوم سکه
+    clearInterval(moveInterval);
+
+    moveInterval = setInterval(()=>{
+        moveCoin(coin);
+    }, 800);
+}
+
+/* =======================
+   📍 حرکت سکه در صفحه
+======================= */
+function moveCoin(coin){
+    coin.style.left = Math.random()*90 + "%";
+    coin.style.top = Math.random()*90 + "%";
+}
+
+/* =======================
+   ▶️ شروع بازی
+======================= */
+function startGame(){
+
+    // گرفتن اسم ذخیره شده
+    playerName = localStorage.getItem("playerName");
+
+    // اگر اسم نبود مودال رو نشان بده
+    if(!playerName){
+        document.getElementById("nameModal").style.display = "flex";
+        return;
+    }
+
+    // ریست بازی
+    score = 0;
+    timeLeft = 25;
+
+    scoreEl.textContent = 0;
+    timeEl.textContent = 25;
+
+    gameRunning = true;
+
+    createCoin();
+
+    clearInterval(timerInterval);
+
+    // تایمر اصلی بازی
+    timerInterval = setInterval(()=>{
+
+        timeLeft--;
+        timeEl.textContent = timeLeft;
+
+        // پایان بازی
+        if(timeLeft <= 0){
+
+            clearInterval(timerInterval);
+            clearInterval(moveInterval);
+
+            game.innerHTML = "";
+            gameRunning = false;
+
+            // ذخیره رکورد
+            if(score > highscore){
+                highscore = score;
+                localStorage.setItem("highscore", score);
+                document.getElementById("highscore").textContent = score;
+            }
+
+            alert(
+                "🎮 بازی تموم شد!\n" +
+                "اسم: " + playerName + "\n" +
+                "امتیاز: " + score
+            );
+        }
+
+    },1000);
+}
+
+/* =======================
+   💾 لود اسم هنگام ورود
+======================= */
+window.onload = function(){
+    playerName = localStorage.getItem("playerName");
+}
+
+</script>
+
+</body>
+</html>
