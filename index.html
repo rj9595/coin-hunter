@@ -84,6 +84,8 @@ h1 {color: aqua;
 <p>این نام در مرورگر شما ذخیره می‌شود</p>
 <input id="nameInput" style="width:90%;padding:8px">
 <br><br>
+<input type="file" id="avatarInput" accept="image/*">
+<br><br>
 <button onclick="saveName()">ثبت نام</button>
 </div>
 </div>
@@ -123,10 +125,17 @@ createBackgroundBalls();
 
 
 // ===== ذخیره نام =====
-function saveName(){
+async function saveName(){
  const n=document.getElementById("nameInput").value.trim();
+ const file=document.getElementById("avatarInput").files[0];
+
  if(!n) return alert("اسم وارد کن");
+
+ const avatarUrl = await uploadAvatar(file);
+
  localStorage.setItem("playerName",n);
+ if(avatarUrl) localStorage.setItem("avatar",avatarUrl);
+
  playerName=n;
  document.getElementById("nameModal").style.display="none";
 }
@@ -151,7 +160,10 @@ async function saveScoreToDB(){
        apikey:SUPABASE_KEY,
        Authorization:`Bearer ${SUPABASE_KEY}`
       },
-      body:JSON.stringify({score})
+      body:JSON.stringify({
+      score,
+      avatar: localStorage.getItem("avatar") || null
+       })
      });
    }
  }else{
@@ -162,7 +174,11 @@ async function saveScoreToDB(){
       apikey:SUPABASE_KEY,
       Authorization:`Bearer ${SUPABASE_KEY}`
     },
-    body:JSON.stringify({player_name:playerName,score})
+    body:JSON.stringify({
+    player_name:playerName,
+    score,
+    avatar: localStorage.getItem("avatar") || null
+    })
    });
  }
 }
@@ -172,14 +188,35 @@ async function loadLeaderboard(){
  const r=await fetch(`${SUPABASE_URL}/rest/v1/scores?select=*&order=score.desc&limit=10`,{
  headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}
  });
+
  const data=await r.json();
  const board=document.getElementById("board");
  board.innerHTML="";
+
  data.forEach((p,i)=>{
-  board.innerHTML+=`<div>${i+1}. ${p.player_name} - ${p.score}</div>`;
+
+  const rank = i + 1; // 👈 این اصل rank هست
+
+  let medal = "🥉";
+  if(rank === 1) medal = "🥇";
+  else if(rank === 2) medal = "🥈";
+  else if(rank === 3) medal = "🥉";
+
+  const avatar = p.avatar 
+   ? `<img src="${p.avatar}" style="width:30px;height:30px;border-radius:50%;vertical-align:middle;margin-left:8px;">`
+   : `<span style="display:inline-block;width:30px;height:30px;border-radius:50%;background:#555;margin-left:8px;"></span>`;
+
+  board.innerHTML += `
+   <div style="display:flex;align-items:center;gap:8px;justify-content:center">
+    <span>${medal}</span>
+    <span>#${rank}</span>
+    ${avatar}
+    <span>${p.player_name}</span>
+    <b style="margin-right:10px">${p.score}</b>
+   </div>
+  `;
  });
 }
-
 // ===== سکه =====
 function moveCoin(c){
  c.style.left=Math.random()*90+"%";
@@ -227,7 +264,7 @@ function startGame(){
    await loadLeaderboard();
    showGameOver();
   }
- },1000);
+ },200);
 }
 
 /* =========================
@@ -260,6 +297,28 @@ window.onload=()=>{
  }
  loadLeaderboard();
 };
+
+async function uploadAvatar(file){
+ if(!file) return null;
+
+ const fileName = `${Date.now()}-${file.name}`;
+
+ const res = await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${fileName}`, {
+  method: "POST",
+  headers:{
+   apikey: SUPABASE_KEY,
+   Authorization: `Bearer ${SUPABASE_KEY}`
+  },
+  body: file
+ });
+
+ if(!res.ok){
+  console.log("upload failed");
+  return null;
+ }
+
+ return `${SUPABASE_URL}/storage/v1/object/public/avatars/${fileName}`;
+}
 
 </script>
 
