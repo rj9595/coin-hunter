@@ -1,60 +1,90 @@
 <!DOCTYPE html>
-
 <html lang="fa" dir="rtl">
-
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ball Hunter</title>
+<title>🎯 شکارچی توپ</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
 <style>
-
-body{font-family:tahoma;margin:0;text-align:center;background:#151515;color:#fff}
-#game{width:min(90vw,500px);aspect-ratio:1;margin:10px auto;border:3px solid #fff;border-radius:15px;position:relative;background:#222;overflow:hidden}
-.coin{width:40px;height:40px;border-radius:50%;background:gold;position:absolute;cursor:pointer}
-button{padding:10px 16px;border:none;border-radius:10px;cursor:pointer}
-#info{display:flex;justify-content:center;gap:15px;flex-wrap:wrap;margin:10px}
-#leaderboard{width:min(90vw,500px);margin:10px auto;border:1px solid #444;border-radius:10px;padding:10px}
-#nameModal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;justify-content:center;align-items:center}
-.modalBox{background:#111;padding:20px;border-radius:15px;position:relative;z-index:2;width:280px}
-.balls{position:absolute;inset:0;overflow:hidden}
-.ball{position:absolute;border-radius:50%;opacity:.4;animation:float 10s linear infinite}
-@keyframes float{from{transform:translateY(110vh)}to{transform:translateY(-150px)}}
-
-@font-face {
-  font-family: nazanin;
-  src: url("Nazanin.ttf") format("ttf");
+body{
+  margin:0;
+  font-family:tahoma;
+  background:#151515;
+  color:#fff;
+  text-align:center;
 }
 
-h1 {color: aqua;
-    font-family: nazanin;
-    font-size: 50px;
- }
+h1{color:aqua;margin-top:10px}
 
- h3 {
-  font-family: nazanin;
-  font-size: 23px;
- }
+#info{
+  display:flex;
+  justify-content:center;
+  gap:15px;
+  flex-wrap:wrap;
+  margin:10px;
+}
 
- p {
-  font-family: nazanin;
- }
+#game{
+  width:min(90vw,500px);
+  aspect-ratio:1;
+  margin:10px auto;
+  border:3px solid #fff;
+  border-radius:15px;
+  position:relative;
+  background:#222;
+  overflow:hidden;
+}
 
- button {
-  font-family: nazanin;
-  font-size: 18px;
-  border-radius: 30px;
-  padding: 5px 15px;
-  color: white;
-  background-color: #f44336;
-  box-shadow:
-    0 6px 0 brown,
-    0 8px 12px rgba(0,0,0,.4);
- }
+.coin{
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  background:gold;
+  position:absolute;
+  cursor:pointer;
+}
 
+button{
+  padding:10px 16px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-family:tahoma;
+  background:#f44336;
+  color:#fff;
+  margin:5px;
+}
+
+#nameModal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.75);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.modalBox{
+  background:#111;
+  padding:20px;
+  border-radius:15px;
+  width:280px;
+}
+input{
+  width:90%;
+  padding:8px;
+  margin-top:10px;
+}
+#leaderboard{
+  width:min(90vw,500px);
+  margin:10px auto;
+  border:1px solid #444;
+  border-radius:10px;
+  padding:10px;
+}
 </style>
-
 </head>
 
 <body>
@@ -62,9 +92,9 @@ h1 {color: aqua;
 <h1>🎯 شکارچی توپ</h1>
 
 <div id="info">
-<div>⭐ <span id="score">0</span></div>
-<div>⏱ <span id="time">25</span></div>
-<div>🏆بیشترین امتیاز شما <span id="highscore">0</span></div>
+  <div>⭐ <span id="score">0</span></div>
+  <div>⏱ <span id="time">25</span></div>
+  <div>🏆 بهترین: <span id="highscore">0</span></div>
 </div>
 
 <button onclick="startGame()">🎮 شروع بازی</button>
@@ -73,315 +103,307 @@ h1 {color: aqua;
 <div id="game"></div>
 
 <div id="leaderboard">
-<h3>🏆 لیست بازیکنان</h3>
+<h3>🏆 برترین بازیکنان</h3>
 <div id="board"></div>
 </div>
 
-<div id="nameModal" style="display:none">
-<div class="balls"></div>
-<div class="modalBox">
-<h3>نام بازیکن</h3>
-<p>این نام در مرورگر شما ذخیره می‌شود</p>
-<input id="nameInput" style="width:90%;padding:8px">
-<br><br>
-<input type="file" id="avatarInput" accept="image/*">
-<br><br>
-<button onclick="saveName()">ثبت نام</button>
-</div>
+<!-- NAME MODAL -->
+<div id="nameModal">
+  <div class="modalBox">
+    <h3>نام بازیکن</h3>
+    <p>برای شروع وارد کن</p>
+    <input id="nameInput" placeholder="نام شما">
+    <button onclick="saveName()">ثبت</button>
+  </div>
 </div>
 
 <script>
+const SUPABASE_URL = "https://dceqzskouoblluxrdgoi.supabase.co";
+const SUPABASE_KEY = "sb_publishable_OaHzdHhVIezzn49Hf0LGkQ_rzvv7vWQ";
 
-// ===== تنظیمات Supabase =====
-const SUPABASE_URL="https://dceqzskouoblluxrdgoi.supabase.co";
-const SUPABASE_KEY="sb_publishable_OaHzdHhVIezzn49Hf0LGkQ_rzvv7vWQ";
+const { createClient } = supabase;
+const client = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ===== متغیرهای بازی =====
-let score=0,timeLeft=25,playerName="";
-let timerInterval,moveInterval;
+// ================= STATE =================
+let score = 0;
+let timeLeft = 25;
+let playerName = "";
+let timerInterval;
+let moveInterval;
 
-const game=document.getElementById("game");
-const scoreEl=document.getElementById("score");
-const timeEl=document.getElementById("time");
+const game = document.getElementById("game");
+const scoreEl = document.getElementById("score");
+const timeEl = document.getElementById("time");
 
-let highscore=localStorage.getItem("highscore")||0;
-document.getElementById("highscore").textContent=highscore;
+let highscore = localStorage.getItem("highscore") || 0;
+document.getElementById("highscore").textContent = highscore;
 
-// ===== توپ های پس زمینه مودال =====
-function createBackgroundBalls(){
- const c=document.querySelector(".balls");
- for(let i=0;i<20;i++){
-  const b=document.createElement("div");
-  b.className="ball";
-  const s=Math.random()*40+20;
-  b.style.width=s+"px"; b.style.height=s+"px";
-  b.style.left=Math.random()*100+"%";
-  b.style.background=`hsl(${Math.random()*360},80%,60%)`;
-  b.style.animationDuration=(Math.random()*8+6)+"s";
-  c.appendChild(b);
- }
-}
-createBackgroundBalls();
+// ================= Real Time =================
+function setupRealtimeLeaderboard() {
 
-
-// ===== ذخیره نام =====
-async function saveName(){
- const n=document.getElementById("nameInput").value.trim();
- const file=document.getElementById("avatarInput").files[0];
-
- if(!n) return alert("اسم وارد کن");
-
- const avatarUrl = await uploadAvatar(file);
-
- localStorage.setItem("playerName",n);
- if(avatarUrl) localStorage.setItem("avatar",avatarUrl);
-
- playerName=n;
- document.getElementById("nameModal").style.display="none";
-}
-function changeName(){
- localStorage.removeItem("playerName");
- document.getElementById("nameModal").style.display="flex";
-}
-
-// ===== ذخیره یا بروزرسانی رکورد =====
-async function saveScoreToDB(){
- const check=await fetch(`${SUPABASE_URL}/rest/v1/scores?player_name=eq.${encodeURIComponent(playerName)}&select=*`,{
- headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}
- });
- const rows=await check.json();
-
- if(rows.length){
-   if(score>rows[0].score){
-     await fetch(`${SUPABASE_URL}/rest/v1/scores?player_name=eq.${encodeURIComponent(playerName)}`,{
-      method:"PATCH",
-      headers:{
-       "Content-Type":"application/json",
-       apikey:SUPABASE_KEY,
-       Authorization:`Bearer ${SUPABASE_KEY}`
+  client
+    .channel('players-changes')
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'players'
       },
-      body:JSON.stringify({
-      score,
-      avatar: localStorage.getItem("avatar") || null
-       })
-     });
-   }
- }else{
-   await fetch(`${SUPABASE_URL}/rest/v1/scores`,{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      apikey:SUPABASE_KEY,
-      Authorization:`Bearer ${SUPABASE_KEY}`
-    },
-    body:JSON.stringify({
-    player_name:playerName,
-    score,
-    avatar: localStorage.getItem("avatar") || null
-    })
-   });
- }
+      (payload) => {
+        loadLeaderboard(); // 🔥 هر تغییر = رفرش لیست
+      }
+    )
+    .subscribe();
 }
 
-// ===== لیدربورد =====
-async function loadLeaderboard(){
- const r=await fetch(`${SUPABASE_URL}/rest/v1/scores?select=*&order=score.desc&limit=10`,{
- headers:{apikey:SUPABASE_KEY,Authorization:`Bearer ${SUPABASE_KEY}`}
- });
+// ================= INIT =================
+window.onload = async () => {
 
- const data=await r.json();
- const board=document.getElementById("board");
- board.innerHTML="";
+  playerName = localStorage.getItem("playerName");
 
- data.forEach((p,i)=>{
-
-  const rank = i + 1; // 👈 این اصل rank هست
-
-  let medal = "🥉";
-  if(rank === 1) medal = "🥇";
-  else if(rank === 2) medal = "🥈";
-  else if(rank === 3) medal = "🥉";
-
-  const avatar = p.avatar 
-   ? `<img src="${p.avatar}" style="width:30px;height:30px;border-radius:50%;vertical-align:middle;margin-left:8px;">`
-   : `<span style="display:inline-block;width:30px;height:30px;border-radius:50%;background:#555;margin-left:8px;"></span>`;
-
-  board.innerHTML += `
-   <div style="display:flex;align-items:center;gap:8px;justify-content:center">
-    <span>${medal}</span>
-    <span>#${rank}</span>
-    ${avatar}
-    <span>${p.player_name}</span>
-    <b style="margin-right:10px">${p.score}</b>
-   </div>
-  `;
- });
-}
-// ===== سکه =====
-function moveCoin(c){
- c.style.left=Math.random()*90+"%";
- c.style.top=Math.random()*90+"%";
-}
-function createCoin(){
- game.innerHTML="";
- const coin=document.createElement("div");
- coin.className="coin";
- moveCoin(coin);
- coin.onclick=()=>{score++;scoreEl.textContent=score;createCoin();};
- game.appendChild(coin);
- clearInterval(moveInterval);
- moveInterval=setInterval(()=>moveCoin(coin),800);
-}
-
-// ===== شروع بازی =====
-function startGame(){
- playerName=localStorage.getItem("playerName");
- if(!playerName){
-  document.getElementById("nameModal").style.display="flex";
-  return;
- }
- score=0; timeLeft=25;
- scoreEl.textContent=0;
- timeEl.textContent=25;
- createCoin();
-
- clearInterval(timerInterval);
- timerInterval=setInterval(async()=>{
-  timeLeft--;
-  timeEl.textContent=timeLeft;
-  if(timeLeft<=0){
-   clearInterval(timerInterval);
-   clearInterval(moveInterval);
-   game.innerHTML="";
-
-   if(score>highscore){
-    highscore=score;
-    localStorage.setItem("highscore",score);
-    document.getElementById("highscore").textContent=score;
-   }
-
-   await saveScoreToDB();
-   await loadLeaderboard();
-   showGameOver();
+  if (!playerName) {
+    document.getElementById("nameModal").style.display = "flex";
+    return;
   }
- },200);
-}
 
-/* =========================
-   🎉 نمایش پایان بازی
-========================= */
+  // 🔥 چک واقعی در دیتابیس
+  const { data } = await client
+    .from("players")
+    .select("name")
+    .eq("name", playerName);
 
-function showGameOver(){
+  // اگر وجود نداشت → پاکسازی کامل
+  if (!data || data.length === 0) {
 
-    document.getElementById("finalScore")
-    .innerText = score;
+    localStorage.removeItem("playerName");
+    localStorage.removeItem("highscore");
 
-    document.getElementById("gameOverModal")
-    .style.display = "flex";
-}
+    playerName = "";
 
-/* =========================
-   ❌ بستن پنجره پایان بازی
-========================= */
+    document.getElementById("nameModal").style.display = "flex";
+    return;
+  }
 
-function closeGameOver(){
-
-    document.getElementById("gameOverModal")
-    .style.display = "none";
-}
-
-window.onload=()=>{
- playerName=localStorage.getItem("playerName");
- if(!playerName){
-   document.getElementById("nameModal").style.display="flex";
- }
- loadLeaderboard();
+  loadLeaderboard();
 };
 
-async function uploadAvatar(file){
- if(!file) return null;
+// ================= SAVE NAME =================
+async function saveName() {
+  const name = document.getElementById("nameInput").value.trim();
+  if (!name) return alert("اسم وارد کن");
 
- const fileName = `${Date.now()}-${file.name}`;
+  const oldName = localStorage.getItem("playerName");
 
- const res = await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${fileName}`, {
-  method: "POST",
-  headers:{
-   apikey: SUPABASE_KEY,
-   Authorization: `Bearer ${SUPABASE_KEY}`
-  },
-  body: file
- });
+  if (oldName) {
+    await client
+      .from("players")
+      .update({ name })
+      .eq("name", oldName);
+  } else {
+    await client.from("players").upsert({
+      name,
+      score: 0
+    }, { onConflict: "name" });
+  }
 
- if(!res.ok){
-  console.log("upload failed");
-  return null;
- }
+  // 🔥 آپدیت localStorage
+  playerName = name;
+  localStorage.setItem("playerName", name);
 
- return `${SUPABASE_URL}/storage/v1/object/public/avatars/${fileName}`;
+  // 🔥 بستن modal
+  document.getElementById("nameModal").style.display = "none";
+
+  // 🚀 مهم‌ترین بخش: ریفرش کامل leaderboard
+  await loadLeaderboard();
+}
+
+// ================= CHANGE NAME (ONLY SHOW MODAL) =================
+function changeName() {
+  document.getElementById("nameModal").style.display = "flex";
+}
+
+// ================= COIN =================
+function moveCoin(c) {
+  const rect = game.getBoundingClientRect();
+  const size = 40;
+
+  c.style.left = Math.random() * (rect.width - size) + "px";
+  c.style.top = Math.random() * (rect.height - size) + "px";
+}
+
+function createCoin() {
+  game.innerHTML = "";
+
+  const coin = document.createElement("div");
+  coin.className = "coin";
+
+  moveCoin(coin);
+
+  coin.onclick = () => {
+    score++;
+    scoreEl.textContent = score;
+    createCoin();
+  };
+
+  game.appendChild(coin);
+
+  clearInterval(moveInterval);
+  moveInterval = setInterval(() => moveCoin(coin), 800);
+}
+
+// ================= START GAME =================
+async function startGame() {
+
+  playerName = localStorage.getItem("playerName");
+
+  if (!playerName) {
+    document.getElementById("nameModal").style.display = "flex";
+    return;
+  }
+
+  // 🔥 چک واقعی در دیتابیس
+  const { data } = await client
+    .from("players")
+    .select("name")
+    .eq("name", playerName);
+
+  // اگر وجود نداشت → اجازه بازی نده
+  if (!data || data.length === 0) {
+    alert("کاربر معتبر نیست، لطفاً دوباره ثبت نام کن");
+
+    localStorage.removeItem("playerName");
+
+    document.getElementById("nameModal").style.display = "flex";
+    return;
+  }
+
+  // ================= شروع بازی =================
+  score = 0;
+  timeLeft = 25;
+
+  scoreEl.textContent = 0;
+  timeEl.textContent = 25;
+
+  createCoin();
+
+  clearInterval(timerInterval);
+
+  timerInterval = setInterval(async () => {
+    timeLeft--;
+    timeEl.textContent = timeLeft;
+
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      clearInterval(moveInterval);
+      game.innerHTML = "";
+
+      const finalScore = Number(score);
+
+      await saveScore(finalScore);
+      await loadLeaderboard();
+
+      if (finalScore > highscore) {
+        highscore = finalScore;
+        localStorage.setItem("highscore", finalScore);
+        document.getElementById("highscore").textContent = finalScore;
+      }
+    }
+  }, 400);
+}
+
+// ================= SAVE SCORE (BEST SCORE ONLY) =================
+async function saveScore(finalScore) {
+
+  const { data } = await client
+    .from("players")
+    .select("score")
+    .eq("name", playerName);
+
+  const oldScore = data?.[0]?.score ?? 0;
+
+  const bestScore = Math.max(finalScore, oldScore);
+
+  const { error } = await client
+    .from("players")
+    .upsert({
+      name: playerName,
+      score: bestScore
+    }, {
+      onConflict: "name"
+    });
+
+  if (error) {
+    console.log("DB ERROR:", error);
+  }
+}
+
+// ================= LEADERBOARD =================
+async function loadLeaderboard() {
+
+  const { data } = await client
+    .from("players")
+    .select("*")
+    .order("score", { ascending: false })
+    .limit(10);
+
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+
+  (data || []).forEach((p, i) => {
+
+    const rank = i + 1;
+
+    let medal = "";
+    let color = "#aaa";
+
+    if (rank === 1) {
+      medal = "🥇";
+      color = "#FFD700";
+    } 
+    else if (rank === 2) {
+      medal = "🥈";
+      color = "#C0C0C0";
+    } 
+    else if (rank === 3) {
+      medal = "🥉";
+      color = "#CD7F32";
+    }
+
+    const row = document.createElement("div");
+
+    row.style.cssText = `
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      padding:6px;
+      margin:4px;
+      border-radius:10px;
+      transition: all 0.4s ease;
+      transform: translateY(10px);
+      opacity: 0;
+      color: ${color};
+      font-weight: ${rank <= 3 ? "bold" : "normal"};
+    `;
+
+    // 👇 فقط یک رتبه نمایش داده میشه (باگ حذف شد)
+    row.innerHTML = `
+      <span>${medal ? medal : `#${rank}`}</span>
+      <b>${p.name}</b>
+      <span>⭐ ${p.score}</span>
+    `;
+
+    board.appendChild(row);
+
+    // 🔥 انیمیشن خودت بدون تغییر
+    setTimeout(() => {
+      row.style.transform = "translateY(0)";
+      row.style.opacity = "1";
+    }, 50 * i);
+  });
 }
 
 </script>
 
-<!-- =========================
-     🎉 پایان بازی
-========================= -->
-
-<div id="gameOverModal" style="
-display:none;
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,.75);
-justify-content:center;
-align-items:center;
-z-index:99999;
-">
-
-<div style="
-background:#111;
-padding:25px;
-border-radius:20px;
-width:300px;
-box-shadow:0 0 20px rgba(255,215,0,.5);
-">
-
-<h2 style="font-family: nazanin; font-size: 31px;">🏆 پایان بازی</h2>
-
-<p style="font-size:26px; font-family: nazanin;">
-امتیاز شما:
-</p>
-
-<h1 id="finalScore"
-style="
-color:gold;
-margin:10px 0;
-">
-0
-</h1>
-
-<button
-style="
-  font-family: nazanin;
-  font-size: 22px;
-  border-radius: 30px;
-  padding: 4px 30px;
-  color: white;
-  background-color: #f44336;
-  box-shadow:
-    0 6px 0 brown,
-    0 8px 12px rgba(0,0,0,.4);"
-class="btn3d"
-onclick="closeGameOver()"
->
-بستن
-</button>
-
-</div>
-
-</div>
-
 </body>
-
 </html>
