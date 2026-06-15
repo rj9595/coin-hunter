@@ -138,42 +138,26 @@ const timeEl = document.getElementById("time");
 let highscore = localStorage.getItem("highscore") || 0;
 document.getElementById("highscore").textContent = highscore;
 
-// ================= Real Time =================
-function setupRealtimeLeaderboard() {
-
-  client
-    .channel('players-changes')
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'players'
-      },
-      (payload) => {
-        loadLeaderboard(); // 🔥 هر تغییر = رفرش لیست
-      }
-    )
-    .subscribe();
-}
-
 // ================= INIT =================
 window.onload = async () => {
 
   playerName = localStorage.getItem("playerName");
 
   if (!playerName) {
+
     document.getElementById("nameModal").style.display = "flex";
+
+    await loadLeaderboard();
+    setupRealtimeLeaderboard();
+
     return;
   }
 
-  // 🔥 چک واقعی در دیتابیس
   const { data } = await client
     .from("players")
     .select("name")
     .eq("name", playerName);
 
-  // اگر وجود نداشت → پاکسازی کامل
   if (!data || data.length === 0) {
 
     localStorage.removeItem("playerName");
@@ -182,10 +166,15 @@ window.onload = async () => {
     playerName = "";
 
     document.getElementById("nameModal").style.display = "flex";
+
+    await loadLeaderboard();
+    setupRealtimeLeaderboard();
+
     return;
   }
 
-  loadLeaderboard();
+  await loadLeaderboard();
+  setupRealtimeLeaderboard();
 };
 
 // ================= SAVE NAME =================
@@ -309,7 +298,7 @@ async function startGame() {
         document.getElementById("highscore").textContent = finalScore;
       }
     }
-  }, 1000);
+  }, 400);
 }
 
 // ================= SAVE SCORE (BEST SCORE ONLY) =================
@@ -339,6 +328,8 @@ async function saveScore(finalScore) {
 }
 
 // ================= LEADERBOARD =================
+
+
 async function loadLeaderboard() {
 
   const { data } = await client
@@ -386,7 +377,6 @@ async function loadLeaderboard() {
       font-weight: ${rank <= 3 ? "bold" : "normal"};
     `;
 
-    // 👇 فقط یک رتبه نمایش داده میشه (باگ حذف شد)
     row.innerHTML = `
       <span>${medal ? medal : `#${rank}`}</span>
       <b>${p.name}</b>
@@ -395,13 +385,53 @@ async function loadLeaderboard() {
 
     board.appendChild(row);
 
-    // 🔥 انیمیشن خودت بدون تغییر
+    // 🔥 انیمیشن تو حفظ شده
     setTimeout(() => {
       row.style.transform = "translateY(0)";
       row.style.opacity = "1";
     }, 50 * i);
   });
 }
+
+
+// ================= REALTIME (TRUE EVENT-BASED) =================
+
+let leaderboardChannel = null;
+
+function setupRealtimeLeaderboard() {
+
+  // جلوگیری از اتصال تکراری
+  if (leaderboardChannel) {
+    client.removeChannel(leaderboardChannel);
+  }
+
+  leaderboardChannel = client
+    .channel('players-live')
+    .on(
+      'postgres_changes',
+      {
+        event: '*', // INSERT / UPDATE / DELETE
+        schema: 'public',
+        table: 'players'
+      },
+      (payload) => {
+        loadLeaderboard(); // 🔥 فقط وقتی واقعاً دیتا تغییر کرد
+      }
+    )
+    .subscribe((status) => {
+      console.log("Realtime status:", status);
+    });
+}
+
+
+// ================= MOBILE + TAB FIX =================
+
+// وقتی برمی‌گردی به صفحه (گوشی/کامپیوتر)
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    loadLeaderboard();
+  }
+});
 
 </script>
 
