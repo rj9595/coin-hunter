@@ -83,7 +83,7 @@ h1{color:gold; margin-top:10px; font-family: nazanin; font-size: 35px;}
 }
 
 button{
-  padding:5px 30px;
+  padding:4px 20px;
   border:none;
   border-radius:20px;
   cursor:pointer;
@@ -91,7 +91,7 @@ button{
   font-size: 20px;
   background:rgba(199, 145, 10, 0.747);
   color:#fff;
-  margin:5px;
+  margin:2px;
 }
 
 #nameModal{
@@ -170,6 +170,7 @@ input:focus{
 
 <button onclick="startGame()">🎮 شروع بازی</button>
 <button onclick="changeName()">✏️ تغییر نام</button>
+<button onclick="openFeedback()">💬 حرفی انتقادی</button>
 
 <div id="profileBox">
   <span id="profileName">👤 -</span>
@@ -190,6 +191,34 @@ input:focus{
     <p style="font-size: 25px; font-family: nazanin;">😎اول نـام وارد کـن</p>
     <input id="nameInput" style="font-family: nazanin; font-size: 15px;" placeholder="نام شما">
     <button id="saveName" style="padding: 1px 66px; margin-top: 15px; font-size: 30px;" onclick="saveName()">ثبت</button>
+  </div>
+</div>
+
+<div id="feedbackModal" style="
+     display:none;
+     position:fixed;
+     inset:0;
+     background:rgba(0,0,0,.7);
+     justify-content:center;
+     align-items:center;
+     ">
+
+  <div class="modalBox">
+    <h3 style="font-family: nazanin; font-size: 30px;">💬 نظر یا پیشنهاد</h3>
+
+    <textarea
+      id="feedbackText"
+      placeholder="نظرت رو بنویس..."
+      style="
+      width:100%;
+      height:70px;
+      margin-top:10px;
+      font-family: nazanin;">
+      </textarea>
+
+    <button onclick="sendFeedback()">ارسال✔️</button>
+    <button onclick="closeFeedback()">لغو ❌</button>
+
   </div>
 </div>
 
@@ -238,6 +267,47 @@ function updateProfileBox(data) {
   }
 
   profileRank.textContent = `😮 رتبه: ${rank}`;
+}
+
+// ================== نظرات =================
+function openFeedback() {
+  document.getElementById("feedbackModal").style.display = "flex";
+}
+
+function closeFeedback() {
+  document.getElementById("feedbackModal").style.display = "none";
+}
+
+async function sendFeedback() {
+
+  const text = document
+    .getElementById("feedbackText")
+    .value
+    .trim();
+
+  if (!text) {
+    alert("متن خالی است");
+    return;
+  }
+
+  const { error } = await client
+    .from("feedbacks")
+    .insert({
+      player_name: playerName,
+      message: text
+    });
+
+  if (error) {
+    alert("خطا در ارسال");
+    console.log(error);
+    return;
+  }
+
+  alert("✅ نظر شما ثبت شد");
+
+  document.getElementById("feedbackText").value = "";
+
+  closeFeedback();
 }
 
 // ================== Ball Sound =================
