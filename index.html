@@ -82,6 +82,16 @@ h1{color:gold; margin-top:10px; font-family: nazanin; font-size: 35px;}
     0 4px 10px rgba(255,215,0,0.4);
 }
 
+.fireCoin{
+  background: radial-gradient(circle, #ffcc00 0%, #ff6600 50%, #ff0000 100%);
+  box-shadow: 0 0 15px #ff6600;
+}
+
+.diamondCoin{
+  background: radial-gradient(circle, #ffffff 0%, #66e0ff 40%, #0099ff 100%);
+  box-shadow: 0 0 20px #00ccff;
+}
+
 button{
   padding:4px 11px;
   border:none;
@@ -110,7 +120,7 @@ button{
   width:280px;
   box-shadow: 0px 0px 10px 5px rgba(201, 147, 0, 0.377);
 }
-  
+
 input{
   width:50%;
   padding:8px;
@@ -120,11 +130,11 @@ input{
   color: #fff;
   transition: width 0.5s ease-in-out;
 }
-  
+
 input:focus{
   width: 80%;
 }
-  
+
 #leaderboard{
   width:min(90vw,500px);
   margin:10px auto;
@@ -157,6 +167,53 @@ input:focus{
   }
 }
 
+.stageMessage{
+  position:fixed;
+  top:35%;
+  left:50%;
+  transform:translate(-50%,-70%);
+  font-size:32px;
+  font-weight:bold;
+  pointer-events:none;
+  z-index:9999;
+
+  animation:stageFade 3s forwards;
+}
+
+@keyframes stageFade{
+  0%{
+    opacity:0;
+    transform:translate(-50%,-50%) scale(0.7);
+  }
+
+  20%{
+    opacity:1;
+    transform:translate(-50%,-50%) scale(1.1);
+  }
+
+  80%{
+    opacity:1;
+  }
+
+  100%{
+    opacity:0;
+    transform:translate(-50%,-80%) scale(1);
+  }
+}
+
+@keyframes shake {
+  0% { transform: translate(0, 0); }
+  20% { transform: translate(-2px, 2px); }
+  40% { transform: translate(-2px, -2px); }
+  60% { transform: translate(2px, 2px); }
+  80% { transform: translate(2px, -2px); }
+  100% { transform: translate(0, 0); }
+}
+
+.shake{
+  animation: shake 0.3s;
+}
+
 </style>
 
 </head>
@@ -167,13 +224,13 @@ input:focus{
 
 <div id="info">
   <div>⭐ <span id="score">0</span></div>
-  <div>⏱ <span id="time">25</span></div>
+  <div>⏱ <span id="time">30</span></div>
   <div>🏆 بهترین امتیاز <span id="highscore">0</span></div>
 </div>
 
 <button onclick="startGame()">🎮 شروع بازی</button>
 <button onclick="changeName()">✏️ تغییر نام</button>
-<button onclick="openFeedback()">💬 انتقاد</button>
+<button onclick="openFeedback()">💬 حرفی انتقادی</button>
 
 <div id="profileBox">
   <span id="profileName">👤 -</span>
@@ -207,7 +264,7 @@ input:focus{
      ">
 
   <div class="modalBox">
-    <h3 style="font-family: nazanin; font-size: 30px;">💬 انتقاد</h3>
+    <h3 style="font-family: nazanin; font-size: 30px;">💬 نظر یا پیشنهاد</h3>
 
     <textarea
       id="feedbackText"
@@ -239,6 +296,9 @@ let timeLeft = 25;
 let playerName = "";
 let timerInterval;
 let moveInterval;
+let currentCoin = null;
+let fireShown = false;
+let diamondShown = false;
 
 const game = document.getElementById("game");
 const scoreEl = document.getElementById("score");
@@ -431,6 +491,22 @@ function changeName() {
   document.getElementById("nameModal").style.display = "flex";
 }
 
+// ================= نمایش پیام مرحله =================
+function showStageMessage(text) {
+
+  const msg = document.createElement("div");
+
+  msg.className = "stageMessage";
+  msg.textContent = text;
+
+  document.body.appendChild(msg);
+
+  setTimeout(() => {
+    msg.remove();
+  }, 3000);
+
+}
+
 // ================= COIN =================
 function moveCoin(c) {
   const rect = game.getBoundingClientRect();
@@ -446,12 +522,29 @@ function createCoin() {
   const coin = document.createElement("div");
   coin.className = "coin";
 
+  currentCoin = coin;
+
+  if(score >= 50){
+  coin.classList.add("diamondCoin");
+  }
+  else if(score >= 40){
+  coin.classList.add("fireCoin");
+  }
+
   moveCoin(coin);
 
   // ============ Click COIN ============
   coin.onclick = () => {
 
-    playPopSound();
+  if(score >= 50){
+  playDiamondSound();
+  }
+  else if(score >= 40){
+  playFireSound();
+  }
+  else{
+  playPopSound();
+  }
 
   const rect = coin.getBoundingClientRect();
 
@@ -473,8 +566,22 @@ function createCoin() {
   score++;
   scoreEl.textContent = score;
 
+  if(score >= 40 && !fireShown){
+  fireShown = true;
+  showStageMessage("🔥 بالای 40 امیتاز");
+  shakeGame();
+  playFireSound();
+  }
+
+  if(score >= 50 && !diamondShown){
+  diamondShown = true;
+  showStageMessage("💎 بالای 50 امتیاز");
+  shakeGame();
+  playDiamondSound();
+  }
+
   createCoin();
-};
+  };
 
   game.appendChild(coin);
 
@@ -510,10 +617,14 @@ async function startGame() {
 
   // ================= شروع بازی =================
   score = 0;
-  timeLeft = 25;
+  timeLeft = 30;
+
+  fireShown = false;
+  diamondShown = false;
 
   scoreEl.textContent = 0;
-  timeEl.textContent = 25;
+  timeEl.textContent = 30;
+  timeEl.style.color = "white";
 
   createCoin();
 
@@ -522,6 +633,20 @@ async function startGame() {
   timerInterval = setInterval(async () => {
     timeLeft--;
     timeEl.textContent = timeLeft;
+
+    if (timeLeft === 10) {
+
+      timeEl.style.color = "red";
+
+      clearInterval(moveInterval);
+
+      moveInterval = setInterval(() => {
+         if(currentCoin){
+         moveCoin(currentCoin);
+        }
+       }, 450);
+
+    }
 
     if (timeLeft <= 0) {
       clearInterval(timerInterval);
@@ -539,7 +664,7 @@ async function startGame() {
         document.getElementById("highscore").textContent = finalScore;
       }
     }
-  }, 1000);
+  }, 10000);
 }
 
 // ================= SAVE SCORE (BEST SCORE ONLY) =================
@@ -598,7 +723,7 @@ async function loadLeaderboard() {
     let color = "#aaa";
 
     if (rank === 1) {
-      medal = "🥇";
+      medal = "👑 پادشاه بازی";
       color = "#FFD700";
     } 
     else if (rank === 2) {
@@ -681,6 +806,55 @@ document.addEventListener("visibilitychange", () => {
     loadLeaderboard();
   }
 });
+
+// ================= SHAKE =================
+function shakeGame(){
+  game.classList.add("shake");
+
+  setTimeout(() => {
+    game.classList.remove("shake");
+  }, 300);
+}
+
+function playFireSound(){
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = "square";
+  osc.frequency.value = 130;
+
+  gain.gain.value = 0.08;
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start();
+
+  osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.2);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+
+  osc.stop(audioCtx.currentTime + 0.2);
+}
+
+function playDiamondSound(){
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = "sine";
+  osc.frequency.value = 880;
+
+  gain.gain.value = 0.1;
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start();
+
+  osc.frequency.exponentialRampToValueAtTime(1320, audioCtx.currentTime + 0.15);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+
+  osc.stop(audioCtx.currentTime + 0.15);
+}
 
 </script>
 
