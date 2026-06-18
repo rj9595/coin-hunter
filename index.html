@@ -343,6 +343,57 @@ input:focus{
   animation: shake 0.3s;
 }
 
+#xpContainer{
+  width:100%;
+  max-width:420px;
+  margin:10px auto;
+
+  padding:10px;
+
+  box-sizing:border-box;
+}
+
+#xpInfo{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+
+  color:#fff;
+  font-size:15px;
+
+  margin-bottom:5px;
+}
+
+#xpBar{
+  width:100%;
+  height:12px;
+
+  background:#222;
+
+  border-radius:999px;
+
+  overflow:hidden;
+
+  box-shadow:
+    inset 0 2px 4px rgba(0,0,0,.4);
+}
+
+#xpFill{
+  width:0%;
+
+  height:100%;
+
+  border-radius:999px;
+
+  background:linear-gradient(
+    90deg,
+    #00e5ff,
+    #00ff95
+  );
+
+  transition:width .35s ease;
+}
+
 </style>
 
 </head>
@@ -359,14 +410,13 @@ input:focus{
 
 <button onclick="startGame()">🎮 شروع بازی</button>
 <button onclick="changeName()">✏️ تغییر نام</button>
-<button onclick="openFeedback()">💬 نظر شما</button>
+<button onclick="openFeedback()">💬 حرفی انتقادی</button>
 
 <div id="profileBox">
 
   <div class="profileCard left">
     <span id="profileName" style="padding-left: 19px;">👤 -</span>
     <span id="profileLevel">Level: -</span>
-    <span id="profileXP">⚡XP: -</span>
   </div>
 
   <div class="profileCard right">
@@ -377,6 +427,18 @@ input:focus{
 </div>
 
 <div id="game"></div>
+
+<div id="xpContainer">
+
+  <div id="xpInfo">
+    <span id="profileXP">0 / 100 XP</span>
+  </div>
+
+  <div id="xpBar">
+    <div id="xpFill"></div>
+  </div>
+
+</div>
 
 <div id="leaderboards">
 
@@ -490,17 +552,11 @@ function updateProfileBox(data) {
   let scoreRank = "-";
   let levelRank = "-";
 
-  let xp = 0;
-  let level = 0;
-
   if (data && data.length) {
 
     const me = data.find(p => p.name === playerName);
 
     if (me) {
-
-      xp = me.xp || 0;
-      level = me.level || 0;
 
       const sortedScore = [...data].sort((a, b) => b.score - a.score);
       scoreRank = sortedScore.findIndex(p => p.name === playerName) + 1;
@@ -510,6 +566,7 @@ function updateProfileBox(data) {
     }
   }
 
+  // 🔥 استفاده از مقادیر زنده بازی
   profileLevel.textContent = `Level: ${level}`;
   profileXP.textContent = `⚡ XP: ${xp}`;
 
@@ -518,6 +575,19 @@ function updateProfileBox(data) {
 
   profileRankLevel.textContent =
     `📊 رتبه لول: ${levelRank}`;
+}
+
+// ================== getPlayerId =================
+function getPlayerId() {
+
+  let id = localStorage.getItem("playerId");
+
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem("playerId", id);
+  }
+
+  return id;
 }
 
 // ================== نظرات =================
@@ -623,39 +693,50 @@ window.onload = async () => {
 
 // ================= SAVE NAME =================
 async function saveName() {
+
   const name = document.getElementById("nameInput").value.trim();
   if (!name) return alert("اسم وارد کن");
 
-  // 1️⃣ بررسی وجود اسم
-  const { data: exists, error: checkError } = await client
+  const playerId = getPlayerId();
+
+  // ❌ اسم تکراری نباشه
+  const { data: exists } = await client
     .from("players")
-    .select("name")
+    .select("*")
     .eq("name", name)
     .maybeSingle();
 
-  if (checkError) {
-    console.log(checkError);
-    return;
-  }
-
-  // 2️⃣ اگر اسم وجود داشت → خطا بده
   if (exists) {
     alert("❌ این اسم قبلاً انتخاب شده است!");
     return;
   }
 
-  // 3️⃣ اگر نبود → ثبت کن
-  const { error } = await client.from("players").insert({
-    name,
-    score: 0
-  });
+  // 🔥 گرفتن دیتا قبلی (خیلی مهم)
+  const { data: oldData } = await client
+    .from("players")
+    .select("*")
+    .eq("id", playerId)
+    .maybeSingle();
+
+  const { error } = await client
+    .from("players")
+    .upsert({
+      id: playerId,
+      name: name,
+
+      // 💥 حفظ کامل دیتا قبلی
+      score: oldData?.score ?? 0,
+      xp: oldData?.xp ?? 0,
+      level: oldData?.level ?? 1
+    }, {
+      onConflict: "id"
+    });
 
   if (error) {
     console.log("DB ERROR:", error);
     return;
   }
 
-  // 4️⃣ ذخیره در لوکال
   playerName = name;
   localStorage.setItem("playerName", name);
 
@@ -744,16 +825,7 @@ function createCoin() {
 
     // ================= XP / LEVEL =================
     xp++;
-
-    if (xp >= 100) {
-      xp = 0;
-      level++;
-      showStageMessage("⬆️ لول بالا!");
-      shakeGame();
-    }
-
-    profileXP.textContent = `⚡ XP: ${xp}`;
-    profileLevel.textContent = `Level: ${level}`;
+    updateLevel();
 
     // ================= STAGES =================
     if (score >= 40 && !fireShown) {
@@ -777,6 +849,29 @@ function createCoin() {
 
   clearInterval(moveInterval);
   moveInterval = setInterval(() => moveCoin(coin), 800);
+}
+
+// ================= loadPlayerData =================
+async function loadPlayerData() {
+
+  const playerId = getPlayerId();
+
+  const { data } = await client
+    .from("players")
+    .select("*")
+    .eq("id", playerId)
+    .maybeSingle();
+
+  if (data) {
+
+    score = data.score || 0;
+    xp = data.xp || 0;
+    level = data.level || 1;
+
+    profileName.textContent = `👤 ${data.name}`;
+
+    updateLevel(); // 🔥 آپدیت UI
+  }
 }
 
 // ================= START GAME =================
@@ -804,6 +899,7 @@ async function startGame() {
     document.getElementById("nameModal").style.display = "flex";
     return;
   }
+    await loadPlayerData();
 
   // ================= شروع بازی =================
   score = 0;
@@ -824,20 +920,6 @@ async function startGame() {
     timeLeft--;
     timeEl.textContent = timeLeft;
 
-    if (timeLeft === 10) {
-
-      timeEl.style.color = "red";
-
-      clearInterval(moveInterval);
-
-      moveInterval = setInterval(() => {
-         if(currentCoin){
-         moveCoin(currentCoin);
-        }
-       }, 450);
-
-    }
-
     if (timeLeft <= 0) {
       clearInterval(timerInterval);
       clearInterval(moveInterval);
@@ -855,6 +937,53 @@ async function startGame() {
       }
     }
   }, 1000);
+}
+
+// ================= updateLevel =================
+function updateLevel() {
+
+  const nextLevelXP = level * 100;
+
+  // 🔥 لول آپ
+  if (xp >= nextLevelXP) {
+
+    level++;
+
+    xp = 0; // 💥 ریست XP فقط اینجا
+
+    showStageMessage("⬆️ لول بالا!");
+    shakeGame();
+  }
+
+  const newNextLevelXP = level * 100;
+
+  profileLevel.textContent = `Lv ${level}`;
+  profileXP.textContent = `⚡ ${xp}/${newNextLevelXP}`;
+
+  // ================= XP BAR FIX =================
+
+  const xpFill = document.getElementById("xpFill");
+
+  if (xpFill) {
+
+    const progress = (xp / newNextLevelXP) * 100;
+
+    xpFill.style.width = `${Math.max(0, Math.min(progress, 100))}%`;
+  }
+}
+
+  // ================= XP BAR =================
+
+const xpFill = document.getElementById("xpFill");
+
+if (xpFill) {
+
+  const nextLevelXP = level * 100;   // 🔥 XP مورد نیاز این لول
+  const currentXP = xp;              // XP داخل لول (ریست شده)
+
+  const progress = (currentXP / nextLevelXP) * 100;
+
+  xpFill.style.width = `${Math.max(0, Math.min(progress, 100))}%`;
 }
 
 // ================= SAVE SCORE (BEST SCORE ONLY) =================
@@ -1045,12 +1174,12 @@ function setupRealtimeLeaderboard() {
     .on(
       'postgres_changes',
       {
-        event: '*', // INSERT / UPDATE / DELETE
+        event: '*',
         schema: 'public',
         table: 'players'
       },
       (payload) => {
-        loadLeaderboard(); // 🔥 فقط وقتی واقعاً دیتا تغییر کرد
+        loadLeaderboard();
       }
     )
     .subscribe();
@@ -1114,6 +1243,10 @@ function playDiamondSound(){
 
   osc.stop(audioCtx.currentTime + 0.15);
 }
+
+window.addEventListener("load", async () => {
+  await loadPlayerData();
+});
 
 </script>
 
