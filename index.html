@@ -202,7 +202,7 @@ input:focus{
 
 /* هر جدول */
 .board{
-  flex:1;               /* 🔥 مهم‌ترین تغییر */
+  flex:0 1 auto;             /* 🔥 مهم‌ترین تغییر */
   min-width:0;
 
   background:#1a1a1a;
@@ -240,7 +240,7 @@ input:focus{
 @media (max-width: 480px){
 
   #leaderboards{
-    gap:6px;
+    gap:5px;
     padding:0 6px;
   }
 
@@ -364,6 +364,89 @@ input:focus{
   transition:width .35s ease;
 }
 
+/* 📱 Samsung J7 Prime Fix */
+
+@media screen and (max-width: 360px) {
+
+  body{
+    overflow-x:hidden;
+  }
+
+  /* پروفایل */
+  #profileBox{
+    width:98%;
+    padding:8px;
+    gap:4px;
+    border-radius:10px;
+  }
+
+  .profileCard{
+    gap:3px;
+    font-size:11px;
+  }
+
+  #profileName{
+    max-width:60px;
+    font-size:12px;
+  }
+
+  #profileLevel,
+  #profileXP,
+  #profileRankScore,
+  #profileRankLevel{
+    font-size:10px;
+  }
+
+  /* XP Bar */
+  #xpContainer{
+    width:95%;
+  }
+
+  /* لیدربرد */
+  #leaderboards{
+    width:100%;
+    gap:6px;
+    padding:0 4px;
+  }
+
+  .board{
+    flex:0 1 auto;
+    padding:6px;
+    font-size:10px;
+  }
+
+  .board h3{
+    font-size:14px;
+    margin-bottom:4px;
+  }
+
+  /* زمین بازی */
+  #game{
+    width:95vw;
+    height:55vw;
+    max-height:280px;
+  }
+
+  /* سکه */
+  .coin{
+    width:42px !important;
+    height:42px !important;
+  }
+
+  /* دکمه‌ها */
+  button{
+    font-size:13px;
+    padding:8px 12px;
+  }
+
+  /* مودال نام */
+  #nameModal input{
+    width:90%;
+    font-size:14px;
+  }
+
+}
+
 </style>
 
 </head>
@@ -380,7 +463,7 @@ input:focus{
 
 <button onclick="startGame()">🎮 شروع بازی</button>
 <button onclick="changeName()">✏️ تغییر نام</button>
-<button onclick="openFeedback()">💬 نظرات</button>
+<button onclick="openFeedback()">💬 نظر یا پیشنهاد</button>
 
 <div id="profileBox">
 
