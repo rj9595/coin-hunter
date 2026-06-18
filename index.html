@@ -27,16 +27,15 @@ h1{color:gold; margin-top:10px; font-family: nazanin; font-size: 35px;}
 }
 
 #profileBox{
-  width:100%;
+  width:90%;
   max-width:420px;
   margin:10px auto;
   padding:10px 12px;
 
   display:flex;
-  flex-direction:row;
-  justify-content:space-between;
+  justify-content:center; 
   align-items:center;
-  gap:8px;
+  gap:12px; 
 
   box-sizing:border-box;
 
@@ -49,73 +48,54 @@ h1{color:gold; margin-top:10px; font-family: nazanin; font-size: 35px;}
     inset 0 1px 0 rgba(255,255,255,0.05);
 
   color:#fff;
-
-  font-size:clamp(11px, 2.5vw, 13px);
+  font-size:13px; 
   backdrop-filter: blur(6px);
-
-  overflow:hidden; /* مهم برای موبایل */
 }
 
-/* 🧩 دو بخش */
 .profileCard{
   display:flex;
-  flex-direction:row;
   align-items:center;
-  gap:6px;
+  gap:8px;
 
-  flex:1;
+  flex:0 1 auto; /* مهم */
   min-width:0;
-
-  white-space:nowrap;
-  overflow:hidden;
 }
 
-/* چپ */
 .profileCard.left{
   justify-content:flex-start;
 }
 
-/* راست */
 .profileCard.right{
-  justify-content:flex-end;
+  justify-content:flex-start;
 }
 
-/* متن‌ها */
-.profileCard span{
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-/* اسم کاربر مهم‌تر */
 #profileName{
   font-weight:bold;
-  max-width:90px;
+  max-width:110px;
 }
 
 /* 📱 موبایل */
 @media (max-width:480px){
 
   #profileBox{
-    padding:8px 10px;
-    gap:6px;
+    padding:10px;
+    gap:10px;
   }
 
   .profileCard{
-    gap:5px;
-    font-size:12px;
+    gap:7px;
+    font-size:13px;
   }
 
   #profileName{
-    max-width:70px;
+    max-width:90px;
   }
 
-  /* کمی فشرده‌تر */
   #profileLevel,
   #profileXP,
   #profileRankScore,
   #profileRankLevel{
-    font-size:11px;
+    font-size:12px;
   }
 }
 
@@ -357,40 +337,30 @@ input:focus{
   display:flex;
   justify-content:center;
   align-items:center;
-
   color:#fff;
-  font-size:15px;
-
+  font-size:20px;
   margin-bottom:5px;
 }
 
 #xpBar{
   width:100%;
   height:12px;
-
   background:#222;
-
   border-radius:999px;
-
   overflow:hidden;
-
   box-shadow:
     inset 0 2px 4px rgba(0,0,0,.4);
 }
 
 #xpFill{
   width:0%;
-
   height:100%;
-
   border-radius:999px;
-
   background:linear-gradient(
     90deg,
     #00e5ff,
     #00ff95
   );
-
   transition:width .35s ease;
 }
 
@@ -410,7 +380,7 @@ input:focus{
 
 <button onclick="startGame()">🎮 شروع بازی</button>
 <button onclick="changeName()">✏️ تغییر نام</button>
-<button onclick="openFeedback()">💬 حرفی انتقادی</button>
+<button onclick="openFeedback()">💬 نظرات</button>
 
 <div id="profileBox">
 
@@ -959,7 +929,7 @@ function updateLevel() {
 
   const newNextLevelXP = level * 100;
 
-  profileLevel.textContent = `Lv ${level}`;
+  profileLevel.textContent = `Level ${level}`;
   profileXP.textContent = `⚡ ${xp}/${newNextLevelXP}`;
 
   // ================= XP BAR FIX =================
