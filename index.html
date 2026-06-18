@@ -212,17 +212,17 @@ input:focus{
   display:flex;
   flex-direction:row;
   justify-content:center;
-  align-items:flex-start;
+  align-items:stretch;
 
-  gap:3px;
-  padding:0 10px;
+  gap:8px;
+  padding:0 8px;
 
   box-sizing:border-box;
 }
 
 /* هر جدول */
 .board{
-  flex:0 0 200px;
+  flex:1;               /* 🔥 مهم‌ترین تغییر */
   min-width:0;
 
   background:#1a1a1a;
@@ -230,17 +230,20 @@ input:focus{
   padding:10px;
 
   color:white;
-  font-size:clamp(11px, 2.5vw, 13px); /* 🔥 ریسپانسیو واقعی */
+  font-size:clamp(11px, 2.5vw, 13px);
 
   overflow:hidden;
+
+  box-shadow:0 6px 16px rgba(0,0,0,0.3);
 }
 
 /* عنوان */
 .board h3{
   font-family: nazanin;
-  font-size:clamp(20px, 3vw, 20px);
+  font-size:clamp(14px, 3vw, 18px);
   margin:0 0 8px 0;
   text-align:center;
+  color:#ffd700;
 }
 
 /* آیتم‌ها */
@@ -248,18 +251,25 @@ input:focus{
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  padding:3px 0;
+  padding:4px 0;
+
+  border-bottom:1px solid rgba(255,255,255,0.05);
 }
 
-/* 📱 موبایل خیلی کوچک */
+/* 📱 موبایل */
 @media (max-width: 480px){
+
   #leaderboards{
-    gap:8px;
+    gap:6px;
     padding:0 6px;
   }
 
   .board{
     padding:8px;
+  }
+
+  .board h3{
+    font-size:14px;
   }
 }
 
